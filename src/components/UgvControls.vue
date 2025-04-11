@@ -10,10 +10,19 @@ const acceleration = maxSpeed / 3; // Acceleration to reach max speed in 3 secon
 const step = 0.0000003; // Base step for movement
 const speed = ref(0); // Current speed in m/s
 const direction = ref<[number, number] | null>(null); // Current movement direction
+let toastVisible = false; // Flag to track if a toast is already visible
 
 function handleKeyDown(e: KeyboardEvent) {
   if (!engineStarted.value) {
-    toast.warning('Please start the engine first!');
+    if (!toastVisible) {
+      toastVisible = true; // Set the flag to true
+      toast.warning('Please start the engine first!', {
+        position: 'bottom-right',
+        onClose: () => {
+          toastVisible = false; // Reset the flag when the toast is closed
+        },
+      });
+    }
     return;
   }
 

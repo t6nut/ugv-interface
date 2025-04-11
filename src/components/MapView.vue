@@ -9,11 +9,14 @@
 import { ref, onMounted, watch } from 'vue';
 import L from 'leaflet';
 import { ugvLocation } from '../store/ugv';
+import { waypoints } from '../store/waypoints'; // Import waypoints store
 
 const mapContainer = ref<HTMLElement | null>(null);
 const initialCoords: [number, number] = [59.437, 24.7536]; // Tallinn or your UGV's start point
 let map: L.Map | null = null;
 let marker: L.Marker | null = null;
+let waypointMarker: L.Marker | null = null; // Marker for the waypoint
+let longPressTimeout: number | null = null;
 
 const lockOnUgv = ref(true); // State to lock/unlock map view
 const ugvDirection = ref(0); // Direction of the UGV in degrees
@@ -31,6 +34,58 @@ function toggleLock() {
   lockOnUgv.value = !lockOnUgv.value;
 }
 
+function handleLongPress(e: L.LeafletMouseEvent) {
+  if (longPressTimeout) {
+    clearTimeout(longPressTimeout);
+    longPressTimeout = null;
+  }
+
+  const { lat, lng } = e.latlng;
+
+  // Add a waypoint marker
+  if (waypointMarker) {
+    map?.removeLayer(waypointMarker);
+  }
+  waypointMarker = L.marker([lat, lng]).addTo(map!);
+
+  // Bind a popup with "Drive" and "Save" buttons
+  waypointMarker.bindPopup(`
+    <div>
+      <button id="drive-btn">Drive</button>
+      <button id="save-btn">Save</button>
+    </div>
+  `).openPopup();
+
+  // Add event listeners for the buttons
+  setTimeout(() => {
+    const driveBtn = document.getElementById('drive-btn');
+    const saveBtn = document.getElementById('save-btn');
+
+    if (driveBtn) {
+      driveBtn.addEventListener('click', () => driveToWaypoint(lat, lng));
+    }
+    if (saveBtn) {
+      saveBtn.addEventListener('click', () => saveWaypoint(lat, lng));
+    }
+  }, 0);
+}
+
+function driveToWaypoint(lat: number, lng: number) {
+  if (waypointMarker) {
+    map?.removeLayer(waypointMarker);
+    waypointMarker = null;
+  }
+  ugvLocation.value = [lat, lng]; // Update UGV location to the waypoint
+}
+
+function saveWaypoint(lat: number, lng: number) {
+  waypoints.value.push([lat, lng]); // Save the waypoint to the store
+  if (waypointMarker) {
+    map?.removeLayer(waypointMarker);
+    waypointMarker = null;
+  }
+}
+
 onMounted(() => {
   if (mapContainer.value) {
     map = L.map(mapContainer.value, {
@@ -42,6 +97,17 @@ onMounted(() => {
     }).addTo(map);
 
     marker = L.marker(initialCoords, { icon: tankIcon }).addTo(map);
+
+    // Add long-press event listener
+    map.on('mousedown', (e: L.LeafletMouseEvent) => {
+      longPressTimeout = window.setTimeout(() => handleLongPress(e), 1000); // Trigger after 1 second
+    });
+    map.on('mouseup', () => {
+      if (longPressTimeout) {
+        clearTimeout(longPressTimeout);
+        longPressTimeout = null;
+      }
+    });
   }
 });
 
@@ -53,7 +119,7 @@ watch(ugvLocation, ([lat, lng], [prevLat, prevLng]) => {
     const deltaLat = lat - prevLat;
     const deltaLng = lng - prevLng;
     if (deltaLat !== 0 || deltaLng !== 0) {
-      ugvDirection.value = (Math.atan2(deltaLng, deltaLat) * 180) / Math.PI;
+      ugvDirection.value = (Math.atan2(deltaLng, deltaLat) * 180) / Math.PI - 90; // Adjust by -90 degrees
     }
 
     // Rotate the barrel without affecting the marker's position
