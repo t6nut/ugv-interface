@@ -16,6 +16,16 @@ let map: L.Map | null = null;
 let marker: L.Marker | null = null;
 
 const lockOnUgv = ref(true); // State to lock/unlock map view
+const ugvDirection = ref(0); // Direction of the UGV in degrees
+
+const tankIcon = L.divIcon({
+  className: 'tank-icon',
+  html: `<div class="tank">
+           <div class="barrel"></div>
+         </div>`,
+  iconSize: [40, 40],
+  iconAnchor: [20, 20],
+});
 
 function toggleLock() {
   lockOnUgv.value = !lockOnUgv.value;
@@ -31,21 +41,38 @@ onMounted(() => {
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
-    marker = L.marker(initialCoords).addTo(map).bindPopup('UGV Location').openPopup();
+    marker = L.marker(initialCoords, { icon: tankIcon }).addTo(map);
   }
 });
 
-watch(ugvLocation, ([lat, lng]) => {
+watch(ugvLocation, ([lat, lng], [prevLat, prevLng]) => {
   if (marker) {
     marker.setLatLng([lat, lng]); // Update marker position
+
+    // Calculate direction based on movement
+    const deltaLat = lat - prevLat;
+    const deltaLng = lng - prevLng;
+    if (deltaLat !== 0 || deltaLng !== 0) {
+      ugvDirection.value = (Math.atan2(deltaLng, deltaLat) * 180) / Math.PI;
+    }
+
+    // Rotate the barrel without affecting the marker's position
+    const tankElement = marker.getElement();
+    if (tankElement) {
+      const barrel = tankElement.querySelector('.barrel') as HTMLElement;
+      if (barrel) {
+        barrel.style.transform = `rotate(${ugvDirection.value}deg)`;
+      }
+    }
   }
+
   if (lockOnUgv.value && map) {
     map.setView([lat, lng]); // Center map on UGV if locked
   }
 });
 </script>
 
-<style scoped>
+<style>
 .lock-btn {
   position: fixed;
   bottom: 20px;
@@ -60,5 +87,28 @@ watch(ugvLocation, ([lat, lng]) => {
 }
 .lock-btn:hover {
   background-color: rgba(50, 50, 50, 0.8);
+}
+
+.tank-icon .tank {
+  width: 40px;
+  height: 40px;
+  background-color: green; /* Ensure the tank is green */
+  border-radius: 50%; /* Make the tank circular */
+  border: 2px solid black; /* Add a border for better visibility */
+  position: relative;
+  display: flex; /* Center the barrel inside the tank */
+  justify-content: center;
+  align-items: center;
+}
+
+.tank-icon .barrel {
+  width: 20px;
+  height: 5px;
+  background-color: black; /* Barrel color */
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%); /* Center the barrel */
+  transform-origin: left center; /* Rotate around the left side */
 }
 </style>
