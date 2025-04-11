@@ -11,7 +11,9 @@ const initialCoords: [number, number] = [59.437, 24.7536]; // Tallinn or your UG
 
 onMounted(() => {
   if (mapContainer.value) {
-    const map = L.map(mapContainer.value).setView(initialCoords, 15);
+    const map = L.map(mapContainer.value, {
+			keyboard: false
+		}).setView(initialCoords, 15);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap contributors',
