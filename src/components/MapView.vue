@@ -42,6 +42,7 @@ const tankIcon = L.divIcon({
 });
 
 let waypointLine: L.Polyline | null = null; // Line between UGV and waypoint
+let waypointMarkers: L.Marker[] = []; // Array to store waypoint markers
 
 function toggleLock() {
   lockOnUgv.value = !lockOnUgv.value;
@@ -123,6 +124,18 @@ function closeWaypointPopup() {
   showWaypointPopup.value = false;
 }
 
+function updateWaypointMarkers() {
+  // Remove existing markers
+  waypointMarkers.forEach((marker) => map?.removeLayer(marker));
+  waypointMarkers = [];
+
+  // Add markers for each waypoint
+  waypoints.value.forEach((waypoint) => {
+    const marker = L.marker(waypoint.location, { title: waypoint.name }).addTo(map!);
+    waypointMarkers.push(marker);
+  });
+}
+
 onMounted(() => {
   if (mapContainer.value) {
     map = L.map(mapContainer.value, {
@@ -145,7 +158,15 @@ onMounted(() => {
         longPressTimeout = null;
       }
     });
+
+    // Initialize waypoint markers
+    updateWaypointMarkers();
   }
+});
+
+watch(waypoints, () => {
+  // Update waypoint markers whenever the waypoint list changes
+  updateWaypointMarkers();
 });
 
 watch(ugvLocation, ([lat, lng], [prevLat, prevLng]) => {
