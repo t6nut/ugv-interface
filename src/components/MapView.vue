@@ -41,6 +41,8 @@ const tankIcon = L.divIcon({
   iconAnchor: [20, 20],
 });
 
+let waypointLine: L.Polyline | null = null; // Line between UGV and waypoint
+
 function toggleLock() {
   lockOnUgv.value = !lockOnUgv.value;
 }
@@ -62,9 +64,15 @@ function driveToWaypoint(lat: number, lng: number) {
   showWaypointPopup.value = false;
 
   const maxSpeed = 20 / 3.6; // 20 km/h converted to m/s
-  const acceleration = maxSpeed / 3; // Acceleration to reach max speed in 3 seconds
+  const acceleration = maxSpeed / (3 * 60); // Acceleration per frame to reach max speed in 3 seconds
   const step = 0.0000003; // Base step for movement
   let speed = 0; // Current speed in m/s
+
+  // Draw a line between the UGV and the waypoint
+  if (waypointLine) {
+    map?.removeLayer(waypointLine);
+  }
+  waypointLine = L.polyline([ugvLocation.value, [lat, lng]], { color: 'limegreen' }).addTo(map!);
 
   function moveStep() {
     const [currentLat, currentLng] = ugvLocation.value;
@@ -75,11 +83,15 @@ function driveToWaypoint(lat: number, lng: number) {
     if (distance < step * speed) {
       // Stop when close enough to the waypoint
       ugvLocation.value = [lat, lng];
+      if (waypointLine) {
+        map?.removeLayer(waypointLine);
+        waypointLine = null;
+      }
       return;
     }
 
     // Accelerate to max speed
-    speed = Math.min(speed + acceleration * 0.1, maxSpeed);
+    speed = Math.min(speed + acceleration, maxSpeed);
 
     // Calculate movement step
     const latStep = (deltaLat / distance) * step * speed;
@@ -90,6 +102,11 @@ function driveToWaypoint(lat: number, lng: number) {
       currentLat + latStep,
       currentLng + lngStep,
     ];
+
+    // Update the line
+    if (waypointLine) {
+      waypointLine.setLatLngs([ugvLocation.value, [lat, lng]]);
+    }
 
     requestAnimationFrame(moveStep);
   }

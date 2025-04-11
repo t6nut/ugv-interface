@@ -3,7 +3,9 @@
     <h2>Saved Waypoints</h2>
     <ul>
       <li v-for="waypoint in waypoints" :key="waypoint.id">
-        <span @click="openPopup(waypoint)">{{ waypoint.name }}</span>
+        <span @click="openPopup(waypoint)">
+          {{ waypoint.name }} ({{ waypoint.location[0].toFixed(5) }}, {{ waypoint.location[1].toFixed(5) }})
+        </span>
       </li>
     </ul>
 
@@ -39,27 +41,40 @@ function openPopup(waypoint: typeof waypoints.value[0]) {
 
 function driveToWaypoint(waypoint: typeof waypoints.value[0]) {
   const [lat, lng] = waypoint.location;
-  const [currentLat, currentLng] = ugvLocation.value;
-  const distance = Math.sqrt((lat - currentLat) ** 2 + (lng - currentLng) ** 2);
-  const speed = 20 / 3.6; // 20 km/h converted to m/s
-  const duration = distance / speed; // Time in seconds to reach the waypoint
-  const steps = Math.ceil(duration * 60); // Assuming 60 updates per second
-  const latStep = (lat - currentLat) / steps;
-  const lngStep = (lng - currentLng) / steps;
 
-  let stepCount = 0;
+  const maxSpeed = 20 / 3.6; // 20 km/h converted to m/s
+  const acceleration = maxSpeed / (3 * 60); // Acceleration per frame to reach max speed in 3 seconds
+  const step = 0.0000003; // Base step for movement
+  let speed = 0; // Current speed in m/s
+
   function moveStep() {
-    if (stepCount < steps) {
-      ugvLocation.value = [
-        ugvLocation.value[0] + latStep,
-        ugvLocation.value[1] + lngStep,
-      ];
-      stepCount++;
-      requestAnimationFrame(moveStep);
-    } else {
-      ugvLocation.value = [lat, lng]; // Ensure final position is exact
+    const [currentLat, currentLng] = ugvLocation.value;
+    const deltaLat = lat - currentLat;
+    const deltaLng = lng - currentLng;
+    const distance = Math.sqrt(deltaLat ** 2 + deltaLng ** 2);
+
+    if (distance < step * speed) {
+      // Stop when close enough to the waypoint
+      ugvLocation.value = [lat, lng];
+      return;
     }
+
+    // Accelerate to max speed
+    speed = Math.min(speed + acceleration, maxSpeed);
+
+    // Calculate movement step
+    const latStep = (deltaLat / distance) * step * speed;
+    const lngStep = (deltaLng / distance) * step * speed;
+
+    // Update UGV position
+    ugvLocation.value = [
+      currentLat + latStep,
+      currentLng + lngStep,
+    ];
+
+    requestAnimationFrame(moveStep);
   }
+
   moveStep();
 }
 
