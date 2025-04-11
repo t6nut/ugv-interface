@@ -11,6 +11,10 @@ const savedWaypoints = localStorage.getItem('waypoints');
 export const waypoints = ref<Waypoint[]>(savedWaypoints ? JSON.parse(savedWaypoints) : []);
 
 // Watch for changes to waypoints and save them to local storage
-watch(waypoints, (newWaypoints) => {
-  localStorage.setItem('waypoints', JSON.stringify(newWaypoints));
-});
+watch(
+  waypoints,
+  (newWaypoints) => {
+    localStorage.setItem('waypoints', JSON.stringify(newWaypoints));
+  },
+  { deep: true } // Ensure deep watching for nested changes
+);

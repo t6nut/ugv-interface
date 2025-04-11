@@ -3,6 +3,7 @@
   <button @click="toggleLock" class="lock-btn">
     {{ lockOnUgv ? 'Unlock View' : 'Lock View' }}
   </button>
+  <slot :mapInstance="map" />
 
   <!-- Centralized popup for waypoint actions -->
   <div v-if="showWaypointPopup" class="waypoint-popup">
@@ -118,6 +119,9 @@ function driveToWaypoint(lat: number, lng: number) {
 function saveWaypoint(lat: number, lng: number) {
   waypoints.value.push({ id: Date.now().toString(), name: `Waypoint ${waypoints.value.length + 1}`, location: [lat, lng] });
   showWaypointPopup.value = false;
+
+  // Update waypoint markers after saving
+  updateWaypointMarkers();
 }
 
 function closeWaypointPopup() {

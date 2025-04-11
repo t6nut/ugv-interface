@@ -1,8 +1,9 @@
 <template>
-  <MapView />
-  <EngineButton />
-  <UgvControls />
-  <WaypointsView />
+  <MapView v-slot="{ mapInstance }">
+    <EngineButton />
+    <UgvControls />
+    <WaypointsView :map="mapInstance" />
+  </MapView>
 </template>
 
 <script lang="ts" setup>
