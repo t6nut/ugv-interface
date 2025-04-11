@@ -3,6 +3,15 @@
   <button @click="toggleLock" class="lock-btn">
     {{ lockOnUgv ? 'Unlock View' : 'Lock View' }}
   </button>
+
+  <!-- Centralized popup for waypoint actions -->
+  <div v-if="showWaypointPopup" class="waypoint-popup">
+    <h3>Waypoint Actions</h3>
+    <p>Latitude: {{ selectedWaypoint?.lat }}, Longitude: {{ selectedWaypoint?.lng }}</p>
+    <button @click="driveToWaypoint(selectedWaypoint.lat, selectedWaypoint.lng)">Drive</button>
+    <button @click="saveWaypoint(selectedWaypoint.lat, selectedWaypoint.lng)">Save</button>
+    <button @click="closeWaypointPopup">Cancel</button>
+  </div>
 </template>
 
 <script lang="ts" setup>
@@ -15,11 +24,13 @@ const mapContainer = ref<HTMLElement | null>(null);
 const initialCoords: [number, number] = [59.437, 24.7536]; // Tallinn or your UGV's start point
 let map: L.Map | null = null;
 let marker: L.Marker | null = null;
-let waypointMarker: L.Marker | null = null; // Marker for the waypoint
 let longPressTimeout: number | null = null;
 
 const lockOnUgv = ref(true); // State to lock/unlock map view
 const ugvDirection = ref(0); // Direction of the UGV in degrees
+
+const showWaypointPopup = ref(false); // Controls visibility of the waypoint popup
+const selectedWaypoint = ref<{ lat: number; lng: number } | null>(null); // Stores the selected waypoint
 
 const tankIcon = L.divIcon({
   className: 'tank-icon',
@@ -42,48 +53,46 @@ function handleLongPress(e: L.LeafletMouseEvent) {
 
   const { lat, lng } = e.latlng;
 
-  // Add a waypoint marker
-  if (waypointMarker) {
-    map?.removeLayer(waypointMarker);
-  }
-  waypointMarker = L.marker([lat, lng]).addTo(map!);
-
-  // Bind a popup with "Drive" and "Save" buttons
-  waypointMarker.bindPopup(`
-    <div>
-      <button id="drive-btn">Drive</button>
-      <button id="save-btn">Save</button>
-    </div>
-  `).openPopup();
-
-  // Add event listeners for the buttons
-  setTimeout(() => {
-    const driveBtn = document.getElementById('drive-btn');
-    const saveBtn = document.getElementById('save-btn');
-
-    if (driveBtn) {
-      driveBtn.addEventListener('click', () => driveToWaypoint(lat, lng));
-    }
-    if (saveBtn) {
-      saveBtn.addEventListener('click', () => saveWaypoint(lat, lng));
-    }
-  }, 0);
+  // Show the centralized popup with waypoint options
+  selectedWaypoint.value = { lat, lng };
+  showWaypointPopup.value = true;
 }
 
 function driveToWaypoint(lat: number, lng: number) {
-  if (waypointMarker) {
-    map?.removeLayer(waypointMarker);
-    waypointMarker = null;
+  showWaypointPopup.value = false;
+
+  // Move the UGV to the waypoint at realistic speed
+  const [currentLat, currentLng] = ugvLocation.value;
+  const distance = Math.sqrt((lat - currentLat) ** 2 + (lng - currentLng) ** 2);
+  const speed = 20 / 3.6; // 20 km/h converted to m/s
+  const duration = distance / speed; // Time in seconds to reach the waypoint
+  const steps = Math.ceil(duration * 60); // Assuming 60 updates per second
+  const latStep = (lat - currentLat) / steps;
+  const lngStep = (lng - currentLng) / steps;
+
+  let stepCount = 0;
+  function moveStep() {
+    if (stepCount < steps) {
+      ugvLocation.value = [
+        ugvLocation.value[0] + latStep,
+        ugvLocation.value[1] + lngStep,
+      ];
+      stepCount++;
+      requestAnimationFrame(moveStep);
+    } else {
+      ugvLocation.value = [lat, lng]; // Ensure final position is exact
+    }
   }
-  ugvLocation.value = [lat, lng]; // Update UGV location to the waypoint
+  moveStep();
 }
 
 function saveWaypoint(lat: number, lng: number) {
-  waypoints.value.push([lat, lng]); // Save the waypoint to the store
-  if (waypointMarker) {
-    map?.removeLayer(waypointMarker);
-    waypointMarker = null;
-  }
+  waypoints.value.push({ id: Date.now().toString(), name: `Waypoint ${waypoints.value.length + 1}`, location: [lat, lng] });
+  showWaypointPopup.value = false;
+}
+
+function closeWaypointPopup() {
+  showWaypointPopup.value = false;
 }
 
 onMounted(() => {
@@ -176,5 +185,33 @@ watch(ugvLocation, ([lat, lng], [prevLat, prevLng]) => {
   left: 50%;
   transform: translate(-50%, -50%); /* Center the barrel */
   transform-origin: left center; /* Rotate around the left side */
+}
+
+.waypoint-popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 20px;
+  border-radius: 8px;
+  z-index: 2000;
+  text-align: center;
+}
+
+.waypoint-popup button {
+  margin: 5px;
+  padding: 10px 20px;
+  border: none;
+  background-color: rgba(128, 128, 128, 0.8);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.waypoint-popup button:hover {
+  background-color: rgba(100, 100, 100, 0.8);
 }
 </style>

@@ -1,13 +1,15 @@
 <template>
   <MapView />
   <EngineButton />
-	<UgvControls />
+  <UgvControls />
+  <WaypointsView />
 </template>
 
 <script lang="ts" setup>
 import MapView from './components/MapView.vue';
 import EngineButton from './components/EngineButton.vue';
 import UgvControls from './components/UgvControls.vue';
+import WaypointsView from './components/WaypointsView.vue';
 </script>
 
 <style>

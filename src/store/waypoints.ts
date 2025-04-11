@@ -1,3 +1,9 @@
 import { ref } from 'vue';
 
-export const waypoints = ref<[number, number][]>([]); // Store for waypoints
+export interface Waypoint {
+  id: string;
+  name: string;
+  location: [number, number];
+}
+
+export const waypoints = ref<Waypoint[]>([]); // Store for waypoints
