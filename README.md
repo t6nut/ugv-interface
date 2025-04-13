@@ -51,7 +51,7 @@ The app will be available at `http://localhost:5173` (or similar port).
 - 🚗 UGV engine start/stop control
 - 🎮 Keyboard movement (arrow keys)
 - 🗺️ Interactive map using Leaflet
-- 📍 Waypoint management (in progress)
+- 📍 Waypoint management
 - 🔔 Toast notifications instead of alerts
 - ❌ Movement is disabled until engine is started
 
@@ -77,6 +77,7 @@ src/
 │   └── waypoints.ts
 ├── utils/
 │   └── movementConstants.ts
+│   └── driveToWaypoint.ts
 └── App.vue
 ```
 
@@ -92,7 +93,7 @@ src/
 
 ## 🤖 AI Disclosure
 
-Some parts of the code structure and documentation were assisted by AI (ChatGPT), including modular breakdown, toast library integration, and suggestions on Vue 3 best practices.
+Some parts of the code structure and documentation were assisted by AI (ChatGPT, Copilot), including modular breakdown, toast library integration, and suggestions on Vue 3 best practices.
 
 ---
 

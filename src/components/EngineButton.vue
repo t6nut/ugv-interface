@@ -5,17 +5,15 @@
 </template>
 
 <script lang="ts" setup>
-import { engineStarted } from '../store/ugv';
+import { engineStarted, stopUgv } from '../store/ugv';
 
 function toggleEngine() {
   engineStarted.value = !engineStarted.value;
-	console.log(`Engine ${engineStarted.value ? 'started' : 'stopped'}`);
-	// Here you can add the logic to start/stop the engine, e.g., send a request to the backend or update the UGV state.
-	// For example:
-	// await fetch('/api/ugv/engine', {
-	//   method: engineStarted.value ? 'POST' : 'DELETE',
-	// });
-	
+  console.log(`Engine ${engineStarted.value ? 'started' : 'stopped'}`);
+  
+  if (!engineStarted.value) {
+    stopUgv(); // Stop the UGV when the engine is stopped
+  }
 }
 </script>
 

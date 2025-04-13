@@ -2,6 +2,7 @@ import { type Ref } from 'vue';
 import L from 'leaflet';
 import { toast } from 'vue3-toastify';
 import { maxSpeed, acceleration, step } from './movementConstants';
+import { stopUgv } from '../store/ugv';
 
 export function driveToWaypoint(
   map: L.Map | null,
@@ -25,6 +26,14 @@ export function driveToWaypoint(
   }
 
   function moveStep() {
+    if (!engineStarted.value) {
+      stopUgv(); // Stop the UGV if the engine is turned off
+      if (waypointLine && map) {
+        map.removeLayer(waypointLine);
+      }
+      return;
+    }
+
     const [currentLat, currentLng] = ugvLocation.value;
     const deltaLat = lat - currentLat;
     const deltaLng = lng - currentLng;
