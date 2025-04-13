@@ -20,6 +20,7 @@ import { ref, onMounted, watch } from 'vue';
 import L from 'leaflet';
 import { ugvLocation } from '../store/ugv';
 import { waypoints } from '../store/waypoints'; // Import waypoints store
+import { maxSpeed, acceleration, step } from '../utils/movementConstants';
 
 const mapContainer = ref<HTMLElement | null>(null);
 const initialCoords: [number, number] = [59.437, 24.7536]; // Tallinn or your UGV's start point
@@ -73,10 +74,7 @@ function handleLongPress(e: L.LeafletMouseEvent) {
 function driveToWaypoint(lat: number, lng: number) {
   showWaypointPopup.value = false;
 
-  const maxSpeed = 20 / 3.6; // 20 km/h converted to m/s
-  const acceleration = maxSpeed / (3 * 60); // Acceleration per frame to reach max speed in 3 seconds
-  const step = 0.0000003; // Base step for movement
-  let speed = 0; // Current speed in m/s
+  const speed = ref(0); // Current speed in m/s
 
   // Draw a line between the UGV and the waypoint
   if (waypointLine) {
@@ -90,7 +88,7 @@ function driveToWaypoint(lat: number, lng: number) {
     const deltaLng = lng - currentLng;
     const distance = Math.sqrt(deltaLat ** 2 + deltaLng ** 2);
 
-    if (distance < step * speed) {
+    if (distance < step * speed.value) {
       // Stop when close enough to the waypoint
       ugvLocation.value = [lat, lng];
       if (waypointLine) {
@@ -101,11 +99,11 @@ function driveToWaypoint(lat: number, lng: number) {
     }
 
     // Accelerate to max speed
-    speed = Math.min(speed + acceleration, maxSpeed);
+    speed.value = Math.min(speed.value + acceleration, maxSpeed);
 
     // Calculate movement step
-    const latStep = (deltaLat / distance) * step * speed;
-    const lngStep = (deltaLng / distance) * step * speed;
+    const latStep = (deltaLat / distance) * step * speed.value;
+    const lngStep = (deltaLng / distance) * step * speed.value;
 
     // Update UGV position
     ugvLocation.value = [

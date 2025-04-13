@@ -9,14 +9,10 @@
 <script lang="ts" setup>
 import { onMounted, onBeforeUnmount, ref } from 'vue';
 import { engineStarted, ugvLocation } from '../store/ugv';
-
 import { toast } from 'vue3-toastify';
 import 'vue3-toastify/dist/index.css';
+import { maxSpeed, acceleration, brakingDeceleration, step } from '../utils/movementConstants';
 
-const maxSpeed = 20 / 3.6; // 20 km/h converted to m/s
-const acceleration = maxSpeed / (3 * 60); // Acceleration per frame to reach max speed in 3 seconds
-const brakingDeceleration = maxSpeed / (2 * 60); // Deceleration per frame to stop in 2 seconds
-const step = 0.0000003; // Base step for movement
 const speed = ref(0); // Current speed in m/s
 const direction = ref<[number, number] | null>(null); // Current movement direction
 let toastVisible = false; // Flag to track if a toast is already visible
