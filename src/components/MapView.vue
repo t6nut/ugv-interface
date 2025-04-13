@@ -9,7 +9,7 @@
   <div v-if="showWaypointPopup" class="waypoint-popup">
     <h3>Waypoint Actions</h3>
     <p>Latitude: {{ selectedWaypoint?.lat }}, Longitude: {{ selectedWaypoint?.lng }}</p>
-    <button v-if="selectedWaypoint" @click="driveToWaypoint(selectedWaypoint.lat, selectedWaypoint.lng)">Drive</button>
+    <button v-if="selectedWaypoint" @click="driveToWaypointHandler(selectedWaypoint.lat, selectedWaypoint.lng)">Drive</button>
     <button v-if="selectedWaypoint" @click="saveWaypoint(selectedWaypoint.lat, selectedWaypoint.lng)">Save</button>
     <button @click="closeWaypointPopup">Cancel</button>
   </div>
@@ -18,9 +18,9 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from 'vue';
 import L from 'leaflet';
-import { ugvLocation } from '../store/ugv';
+import { ugvLocation, engineStarted } from '../store/ugv';
 import { waypoints } from '../store/waypoints'; // Import waypoints store
-import { maxSpeed, acceleration, step } from '../utils/movementConstants';
+import { driveToWaypoint } from '../utils/driveToWaypoint'; // Import the utility function
 
 const mapContainer = ref<HTMLElement | null>(null);
 const initialCoords: [number, number] = [59.437, 24.7536]; // Tallinn or your UGV's start point
@@ -71,55 +71,8 @@ function handleLongPress(e: L.LeafletMouseEvent) {
   showWaypointPopup.value = true;
 }
 
-function driveToWaypoint(lat: number, lng: number) {
-  showWaypointPopup.value = false;
-
-  const speed = ref(0); // Current speed in m/s
-
-  // Draw a line between the UGV and the waypoint
-  if (waypointLine) {
-    map?.removeLayer(waypointLine);
-  }
-  waypointLine = L.polyline([ugvLocation.value, [lat, lng]], { color: 'limegreen' }).addTo(map!);
-
-  function moveStep() {
-    const [currentLat, currentLng] = ugvLocation.value;
-    const deltaLat = lat - currentLat;
-    const deltaLng = lng - currentLng;
-    const distance = Math.sqrt(deltaLat ** 2 + deltaLng ** 2);
-
-    if (distance < step * speed.value) {
-      // Stop when close enough to the waypoint
-      ugvLocation.value = [lat, lng];
-      if (waypointLine) {
-        map?.removeLayer(waypointLine);
-        waypointLine = null;
-      }
-      return;
-    }
-
-    // Accelerate to max speed
-    speed.value = Math.min(speed.value + acceleration, maxSpeed);
-
-    // Calculate movement step
-    const latStep = (deltaLat / distance) * step * speed.value;
-    const lngStep = (deltaLng / distance) * step * speed.value;
-
-    // Update UGV position
-    ugvLocation.value = [
-      currentLat + latStep,
-      currentLng + lngStep,
-    ];
-
-    // Update the line
-    if (waypointLine) {
-      waypointLine.setLatLngs([ugvLocation.value, [lat, lng]]);
-    }
-
-    requestAnimationFrame(moveStep);
-  }
-
-  moveStep();
+function driveToWaypointHandler(lat: number, lng: number) {
+  driveToWaypoint(map, ugvLocation, engineStarted, [lat, lng]);
 }
 
 function saveWaypoint(lat: number, lng: number) {

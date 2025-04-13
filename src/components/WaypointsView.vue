@@ -18,7 +18,7 @@
     <div v-if="selectedWaypoint" class="popup">
       <h3>{{ selectedWaypoint.name }}</h3>
       <button
-        @click="driveToWaypoint(selectedWaypoint)"
+        @click="driveToWaypointHandler(selectedWaypoint)"
         :disabled="!engineStarted"
       >
         Drive
@@ -40,7 +40,7 @@ import { ref, defineProps, watch } from 'vue';
 import { waypoints } from '../store/waypoints';
 import { ugvLocation, engineStarted } from '../store/ugv';
 import L from 'leaflet';
-import { toast } from 'vue3-toastify';
+import { driveToWaypoint } from '../utils/driveToWaypoint'; // Import the utility function
 
 // Accept the map instance as a prop
 const props = defineProps<{ map: L.Map | null }>();
@@ -49,7 +49,6 @@ const selectedWaypoint = ref(null as null | typeof waypoints.value[0]);
 const hoveredWaypoint = ref(null as null | typeof waypoints.value[0]);
 const renaming = ref(false);
 const newName = ref('');
-let waypointLine: L.Polyline | null = null;
 
 // Watch for changes to the map instance
 watch(
@@ -67,68 +66,8 @@ function openPopup(waypoint: typeof waypoints.value[0]) {
   newName.value = '';
 }
 
-function driveToWaypoint(waypoint: typeof waypoints.value[0]) {
-  if (!props.map) {
-    toast.error('Map instance is not available. Please try again later.', { position: 'top-center' });
-    return;
-  }
-
-  if (!engineStarted.value) {
-    toast.warning('Please start the engine first!', { position: 'top-center' });
-    return;
-  }
-
-  const [lat, lng] = waypoint.location;
-
-  const maxSpeed = 20 / 3.6; // 20 km/h converted to m/s
-  const acceleration = maxSpeed / (3 * 60); // Acceleration per frame to reach max speed in 3 seconds
-  const step = 0.0000003; // Base step for movement
-  let speed = 0; // Current speed in m/s
-
-  // Draw a line between the UGV and the waypoint
-  if (waypointLine) {
-    props.map.removeLayer(waypointLine);
-  }
-  waypointLine = L.polyline([ugvLocation.value, [lat, lng]], { color: 'limegreen' }).addTo(props.map);
-
-  function moveStep() {
-    const [currentLat, currentLng] = ugvLocation.value;
-    const deltaLat = lat - currentLat;
-    const deltaLng = lng - currentLng;
-    const distance = Math.sqrt(deltaLat ** 2 + deltaLng ** 2);
-
-    if (distance < step * speed) {
-      // Stop when close enough to the waypoint
-      ugvLocation.value = [lat, lng];
-      if (waypointLine) {
-        props.map.removeLayer(waypointLine);
-        waypointLine = null;
-      }
-      return;
-    }
-
-    // Accelerate to max speed
-    speed = Math.min(speed + acceleration, maxSpeed);
-
-    // Calculate movement step
-    const latStep = (deltaLat / distance) * step * speed;
-    const lngStep = (deltaLng / distance) * step * speed;
-
-    // Update UGV position
-    ugvLocation.value = [
-      currentLat + latStep,
-      currentLng + lngStep,
-    ];
-
-    // Update the line
-    if (waypointLine) {
-      waypointLine.setLatLngs([ugvLocation.value, [lat, lng]]);
-    }
-
-    requestAnimationFrame(moveStep);
-  }
-
-  moveStep();
+function driveToWaypointHandler(waypoint: typeof waypoints.value[0]) {
+  driveToWaypoint(props.map, ugvLocation, engineStarted, waypoint.location);
 }
 
 function renameWaypoint() {
