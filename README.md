@@ -18,7 +18,7 @@ This is a software engineering HMI homework project — a browser-based prototyp
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/ugv-interface.git
+git clone https://github.com/t6nut/ugv-interface.git
 cd ugv-interface
 ```
 

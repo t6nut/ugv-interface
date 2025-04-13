@@ -1,6 +1,6 @@
 <template>
   <div class="speedometer">
-    Speed: {{ (ugvSpeed.value * 3.6).toFixed(1) }} km/h
+    Speed: {{ (ugvSpeed * 3.6).toFixed(1) }} km/h
     <br />
     Coordinates: {{ ugvLocation[0].toFixed(5) }}, {{ ugvLocation[1].toFixed(5) }}
   </div>
