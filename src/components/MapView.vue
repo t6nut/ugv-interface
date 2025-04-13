@@ -45,6 +45,14 @@ const tankIcon = L.divIcon({
 let waypointLine: L.Polyline | null = null; // Line between UGV and waypoint
 let waypointMarkers: L.Marker[] = []; // Array to store waypoint markers
 
+// Custom red cross icon for waypoints
+const waypointIcon = L.divIcon({
+  className: 'custom-waypoint-icon', // Ensure this class is unique
+  html: '<div class="red-cross"></div>', // Custom HTML for the red cross
+  iconSize: [20, 20], // Size of the icon
+  iconAnchor: [10, 10], // Anchor point of the icon
+});
+
 function toggleLock() {
   lockOnUgv.value = !lockOnUgv.value;
 }
@@ -120,6 +128,10 @@ function saveWaypoint(lat: number, lng: number) {
   waypoints.value.push({ id: Date.now().toString(), name: `Waypoint ${waypoints.value.length + 1}`, location: [lat, lng] });
   showWaypointPopup.value = false;
 
+  // Add the new marker with the custom icon
+  const marker = L.marker([lat, lng], { icon: waypointIcon, title: `Waypoint ${waypoints.value.length}` }).addTo(map!);
+  waypointMarkers.push(marker);
+
   // Update waypoint markers after saving
   updateWaypointMarkers();
 }
@@ -135,7 +147,7 @@ function updateWaypointMarkers() {
 
   // Add markers for each waypoint
   waypoints.value.forEach((waypoint) => {
-    const marker = L.marker(waypoint.location, { title: waypoint.name }).addTo(map!);
+    const marker = L.marker(waypoint.location, { icon: waypointIcon, title: waypoint.name }).addTo(map!);
     waypointMarkers.push(marker);
   });
 }
@@ -266,5 +278,28 @@ watch(ugvLocation, ([lat, lng], [prevLat, prevLng]) => {
 
 .waypoint-popup button:hover {
   background-color: rgba(100, 100, 100, 0.8);
+}
+
+.red-cross {
+  width: 20px;
+  height: 30px;
+  position: relative;
+  background-color: transparent;
+}
+
+.red-cross::before,
+.red-cross::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  width: 2px;
+  height: 100%;
+  background-color: red;
+  transform: translateX(-50%);
+}
+
+.red-cross::after {
+  transform: rotate(90deg) translateX(-50%);
 }
 </style>
