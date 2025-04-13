@@ -51,7 +51,7 @@ The app will be available at `http://localhost:5173` (or similar port).
 - 🚗 UGV engine start/stop control
 - 🎮 Keyboard movement (arrow keys)
 - 🗺️ Interactive map using Leaflet
-- 📍 Waypoint management
+- 📍 Waypoint management (add, delete, drive, rename. List saved to localStorage)
 - 🔔 Toast notifications instead of alerts
 - ❌ Movement is disabled until engine is started
 
@@ -83,17 +83,9 @@ src/
 
 ---
 
-## 💬 Notes
-
-- This is a prototype only — map movement and controls are mocked.
-- UGV logic is simplified and client-side only.
-- Long-press and waypoint features are in development.
-
----
-
 ## 🤖 AI Disclosure
 
-Some parts of the code structure and documentation were assisted by AI (ChatGPT, Copilot), including modular breakdown, toast library integration, and suggestions on Vue 3 best practices.
+Some parts of the code structure and documentation were assisted by AI (ChatGPT, Copilot), including modular breakdown, and suggestions on Vue 3 best practices.
 
 ---
 
